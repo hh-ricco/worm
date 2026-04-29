@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Worm — A first nervous system</title>
+  </head>
+  <body>
+    <div class="frame">
+      <header class="topbar">
+        <div class="chapter-block">
+          <span class="chapter-num">章节 1 / 7</span>
+          <span class="dot active" data-chapter="1"></span>
+          <span class="dot" data-chapter="2"></span>
+          <span class="dot" data-chapter="3"></span>
+          <span class="dot" data-chapter="4"></span>
+          <span class="dot" data-chapter="5"></span>
+          <span class="dot" data-chapter="6"></span>
+          <span class="dot" data-chapter="7"></span>
+          <span class="chapter-name">观察</span>
+        </div>
+        <div class="top-icons">
+          <button class="icon-btn" aria-label="音效开关" title="音效（点击启用）" id="audio-toggle">🔇</button>
+          <button class="icon-btn" aria-label="设置" title="设置">⚙</button>
+        </div>
+      </header>
+
+      <main class="main">
+        <section class="petri-zone">
+          <div id="petri-stage"></div>
+        </section>
+
+        <aside class="right-col">
+          <section class="tools" aria-label="实验工具">
+            <button class="tool locked" data-tool="food" data-state="locked" disabled aria-label="食物（未解锁）">
+              <span class="lock" aria-hidden="true">🔒</span>
+              <svg class="tool-icon" viewBox="0 0 32 32" aria-hidden="true">
+                <path d="M16 4 C 9 14, 9 22, 16 28 C 23 22, 23 14, 16 4 Z"
+                      fill="#bbf7d0" stroke="#1a1a1a" stroke-width="2.5" stroke-linejoin="round"/>
+                <path d="M16 10 L 19 7 L 22 9" fill="none"
+                      stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span class="name">食物</span>
+            </button>
+
+            <button class="tool locked" data-tool="danger" data-state="locked" disabled aria-label="危险（未解锁）">
+              <span class="lock" aria-hidden="true">🔒</span>
+              <svg class="tool-icon" viewBox="0 0 32 32" aria-hidden="true">
+                <line x1="3" y1="27" x2="29" y2="27" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round"/>
+                <polygon points="6,27 10,13 14,27" fill="#fecaca" stroke="#1a1a1a" stroke-width="2.5" stroke-linejoin="round"/>
+                <polygon points="13,27 17,17 21,27" fill="#fecaca" stroke="#1a1a1a" stroke-width="2.5" stroke-linejoin="round"/>
+                <polygon points="19,27 23,10 27,27" fill="#fecaca" stroke="#1a1a1a" stroke-width="2.5" stroke-linejoin="round"/>
+              </svg>
+              <span class="name">危险</span>
+            </button>
+
+            <button class="tool locked" data-tool="temperature" data-state="locked" disabled aria-label="温度（未解锁）">
+              <span class="lock" aria-hidden="true">🔒</span>
+              <svg class="tool-icon" viewBox="0 0 32 32" aria-hidden="true">
+                <rect x="13" y="5" width="6" height="18" rx="3"
+                      fill="#fed7aa" stroke="#1a1a1a" stroke-width="2.5"/>
+                <circle cx="16" cy="24" r="5"
+                        fill="#fed7aa" stroke="#1a1a1a" stroke-width="2.5"/>
+                <line x1="20" y1="10" x2="22" y2="10" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round"/>
+                <line x1="20" y1="15" x2="22" y2="15" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round"/>
+                <line x1="20" y1="20" x2="22" y2="20" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <span class="name">温度</span>
+            </button>
+
+            <button class="tool locked" data-tool="light" data-state="locked" disabled aria-label="光照（未解锁）">
+              <span class="lock" aria-hidden="true">🔒</span>
+              <svg class="tool-icon" viewBox="0 0 32 32" aria-hidden="true">
+                <path d="M16 5 C 10 5, 7 10, 7 15 C 7 19, 10 22, 12 23 L 12 25 L 20 25 L 20 23 C 22 22, 25 19, 25 15 C 25 10, 22 5, 16 5 Z"
+                      fill="#fef3c7" stroke="#1a1a1a" stroke-width="2.5" stroke-linejoin="round"/>
+                <line x1="13" y1="27" x2="19" y2="27" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round"/>
+                <line x1="14" y1="29" x2="18" y2="29" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <span class="name">光照</span>
+            </button>
+          </section>
+
+          <section class="spike-panel" aria-label="神经元活动">
+            <div class="spike-title">神经元活动 (rate coding)</div>
+
+            <div class="channel" data-neuron="AVB">
+              <span class="ch-label" title="运动指令">AVB</span>
+              <div class="ch-trace-wrap">
+                <canvas class="ch-trace" data-channel="AVB"></canvas>
+                <span class="ch-trace-lock" aria-hidden="true">🔒</span>
+              </div>
+            </div>
+
+            <div class="channel locked" data-neuron="AWC">
+              <span class="ch-label" title="食物气味（章节 2 解锁）">AWC</span>
+              <div class="ch-trace-wrap">
+                <canvas class="ch-trace" data-channel="AWC"></canvas>
+                <span class="ch-trace-lock" aria-hidden="true">🔒</span>
+              </div>
+            </div>
+
+            <div class="channel locked" data-neuron="ASH">
+              <span class="ch-label" title="伤害感受（章节 3 解锁）">ASH</span>
+              <div class="ch-trace-wrap">
+                <canvas class="ch-trace" data-channel="ASH"></canvas>
+                <span class="ch-trace-lock" aria-hidden="true">🔒</span>
+              </div>
+            </div>
+
+            <div class="channel locked" data-neuron="AFD">
+              <span class="ch-label" title="温度感受（章节 4 解锁）">AFD</span>
+              <div class="ch-trace-wrap">
+                <canvas class="ch-trace" data-channel="AFD"></canvas>
+                <span class="ch-trace-lock" aria-hidden="true">🔒</span>
+              </div>
+            </div>
+
+            <div class="channel locked" data-neuron="ASJ">
+              <span class="ch-label" title="光感受（章节 5 解锁）">ASJ</span>
+              <div class="ch-trace-wrap">
+                <canvas class="ch-trace" data-channel="ASJ"></canvas>
+                <span class="ch-trace-lock" aria-hidden="true">🔒</span>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </main>
+
+      <footer class="narrative" id="narrative-bar" role="button" tabindex="0" title="点击继续 / Click to continue">
+        <p id="narrative-text">第一次突破——转向（steering）</p>
+        <span class="narrative-hint" id="narrative-hint" aria-hidden="true">→</span>
+      </footer>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
