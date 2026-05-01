@@ -1,4 +1,4 @@
-import { createStage } from './render/stage';
+import { createStage, type Stage } from './render/stage';
 import { createWorm, tickWorm, SPEED_MIN, SPEED_MAX } from './sim/worm';
 import {
   createSpikeChannel,
@@ -58,7 +58,16 @@ function readVar(name: string, fallback: string): string {
 const host = $('#petri-stage');
 if (!host) throw new Error('petri host not found');
 
-const stage = await createStage(host);
+let stage: Stage;
+try {
+  stage = await createStage(host);
+} catch (err) {
+  console.error('PixiJS initialization failed:', err);
+  host.innerHTML =
+    '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:18px">无法初始化渲染器，请检查浏览器是否支持 WebGL。</div>';
+  throw err;
+}
+
 const worm = createWorm();
 
 // Instantiate every neuron channel + trace renderer up front. Locked ones run at rate 0 (silent + no spikes).

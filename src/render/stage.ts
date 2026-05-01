@@ -12,18 +12,42 @@ const COLOR_DISH_STROKE = 0x2a2a2a;
 const COLOR_WORM_FILL = 0x22c55e;
 const COLOR_WORM_STROKE = 0x1a1a1a;
 
+const MIN_SIZE = 400;
+
 export async function createStage(host: HTMLElement): Promise<Stage> {
   const app = new Application();
+
+  // PixiJS resizeTo picks up the host's current clientWidth/clientHeight when
+  // init() runs.  If CSS hasn't resolved yet, those can be 0 and the renderer
+  // ends up 0×0 — nothing draws.  Force a fallback minimum so the dish and
+  // worm are always at least a reasonable size, then let the resize observer
+  // push it larger once layout settles.
+  const w = Math.max(MIN_SIZE, host.clientWidth || 0);
+  const h = Math.max(MIN_SIZE, host.clientHeight || 0);
 
   await app.init({
     backgroundAlpha: 0,
     antialias: true,
     autoDensity: true,
     resolution: window.devicePixelRatio || 1,
-    resizeTo: host,
+    width: w,
+    height: h,
   });
 
   host.appendChild(app.canvas);
+
+  // After init, hand control over to the resize observer so the renderer
+  // tracks the host element from here on.
+  const ro = new ResizeObserver((entries) => {
+    const r = entries[0];
+    if (!r) return;
+    const cw = r.contentBoxSize[0]?.inlineSize;
+    const ch = r.contentBoxSize[0]?.blockSize;
+    if (typeof cw === 'number' && typeof ch === 'number' && cw > 0 && ch > 0) {
+      app.renderer.resize(cw, ch);
+    }
+  });
+  ro.observe(host);
 
   const world = new Container();
   app.stage.addChild(world);
@@ -50,7 +74,10 @@ export async function createStage(host: HTMLElement): Promise<Stage> {
     app,
     worm,
     getDishRadius,
-    destroy: () => app.destroy(true, { children: true }),
+    destroy: () => {
+      ro.disconnect();
+      app.destroy(true, { children: true });
+    },
   };
 }
 
