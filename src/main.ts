@@ -58,6 +58,15 @@ function readVar(name: string, fallback: string): string {
 const host = $('#petri-stage');
 if (!host) throw new Error('petri host not found');
 
+console.log(
+  '[Worm] host dims at init:',
+  host.clientWidth,
+  '×',
+  host.clientHeight,
+  '| dpr:',
+  window.devicePixelRatio,
+);
+
 let stage: Stage;
 try {
   stage = await createStage(host);
@@ -67,6 +76,15 @@ try {
     '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:18px">无法初始化渲染器，请检查浏览器是否支持 WebGL。</div>';
   throw err;
 }
+
+console.log(
+  '[Worm] renderer ready:',
+  stage.app.screen.width,
+  '×',
+  stage.app.screen.height,
+  '| dish radius:',
+  stage.getDishRadius(),
+);
 
 const worm = createWorm();
 
@@ -167,8 +185,32 @@ const SIM_DT = 1 / 30;
 let acc = 0;
 const chapterStartMs = performance.now();
 let last = chapterStartMs;
+let frameCount = 0;
 
 stage.app.ticker.add(() => {
+  frameCount++;
+  if (frameCount === 1) {
+    console.log(
+      '[Worm] ticker started, canvas in DOM:',
+      document.querySelector('#petri-stage canvas') !== null,
+      '| canvas size:',
+      (stage.app.canvas as HTMLCanvasElement).width,
+      '×',
+      (stage.app.canvas as HTMLCanvasElement).height,
+    );
+    console.log('[Worm] channels:', channels.size, '| traces:', traces.size);
+  }
+  if (frameCount % 120 === 0) {
+    console.log(
+      '[Worm] frame',
+      frameCount,
+      '| worm pos:',
+      worm.position.x.toFixed(0),
+      worm.position.y.toFixed(0),
+      '| avb rate:',
+      avb.rate.toFixed(1),
+    );
+  }
   const nowMs = performance.now();
   const dt = Math.min((nowMs - last) / 1000, 0.1);
   last = nowMs;
