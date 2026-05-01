@@ -1,7 +1,19 @@
-import { Application, Container, Graphics } from 'pixi.js';
+import {
+  Container,
+  Graphics,
+  WebGLRenderer,
+  Ticker,
+  type Renderer,
+} from 'pixi.js';
 
 export interface Stage {
-  app: Application;
+  app: {
+    renderer: Renderer;
+    stage: Container;
+    screen: { width: number; height: number };
+    canvas: HTMLCanvasElement;
+    ticker: Ticker;
+  };
   worm: Graphics;
   getDishRadius(): number;
   destroy(): void;
@@ -11,52 +23,53 @@ const COLOR_DISH_FILL = 0xfcfaf5;
 const COLOR_DISH_STROKE = 0x2a2a2a;
 const COLOR_WORM_FILL = 0x22c55e;
 const COLOR_WORM_STROKE = 0x1a1a1a;
-
 const MIN_SIZE = 400;
 
 export async function createStage(host: HTMLElement): Promise<Stage> {
-  console.log('[Stage] 1/6 new Application...');
-  const app = new Application();
-
   const w = Math.max(MIN_SIZE, host.clientWidth || 0);
   const h = Math.max(MIN_SIZE, host.clientHeight || 0);
 
-  console.log('[Stage] 2/6 app.init() start, size:', w, '×', h, 'dpr:', window.devicePixelRatio);
+  console.log('[Stage] creating WebGLRenderer, size:', w, '×', h);
+
+  let renderer: Renderer;
   try {
-    await app.init({
+    renderer = new WebGLRenderer();
+    console.log('[Stage] WebGLRenderer created, calling init...');
+    await renderer.init({
       backgroundAlpha: 0,
       antialias: true,
-      autoDensity: true,
-      resolution: window.devicePixelRatio || 1,
       width: w,
       height: h,
-      preference: 'webgl',
+      resolution: window.devicePixelRatio || 1,
+      autoDensity: true,
     });
+    console.log('[Stage] renderer init done, type:', (renderer as any).type ?? 'webgl');
   } catch (e) {
-    console.error('[Stage] app.init() FAILED:', e);
+    console.error('[Stage] WebGLRenderer failed:', e);
     throw e;
   }
-  console.log('[Stage] 3/6 init done, renderer:', app.renderer.type ?? app.renderer.name);
 
-  host.appendChild(app.canvas);
-  console.log('[Stage] 4/6 canvas appended, setting up ResizeObserver...');
+  host.appendChild(renderer.canvas as HTMLCanvasElement);
+  console.log('[Stage] canvas appended');
 
-  // After init, hand control over to the resize observer so the renderer
-  // tracks the host element from here on.
+  // ResizeObserver — keep the renderer glued to the container size.
   const ro = new ResizeObserver((entries) => {
     const r = entries[0];
     if (!r) return;
     const cw = r.contentBoxSize[0]?.inlineSize;
     const ch = r.contentBoxSize[0]?.blockSize;
     if (typeof cw === 'number' && typeof ch === 'number' && cw > 0 && ch > 0) {
-      app.renderer.resize(cw, ch);
+      renderer.resize(cw, ch);
     }
   });
   ro.observe(host);
-  console.log('[Stage] 5/6 ResizeObserver active, building scene graph...');
+
+  const stage = new Container();
+  const ticker = new Ticker();
+  ticker.start();
 
   const world = new Container();
-  app.stage.addChild(world);
+  stage.addChild(world);
 
   const dish = new Graphics();
   world.addChild(dish);
@@ -66,17 +79,39 @@ export async function createStage(host: HTMLElement): Promise<Stage> {
   world.addChild(worm);
 
   const getDishRadius = (): number =>
-    Math.min(app.screen.width, app.screen.height) / 2 - 12;
+    Math.min(renderer.width, renderer.height) / 2 - 12;
 
   const updateLayout = (): void => {
-    world.position.set(app.screen.width / 2, app.screen.height / 2);
+    world.position.set(renderer.width / 2, renderer.height / 2);
     redrawDish(dish, getDishRadius());
   };
 
-  app.renderer.on('resize', updateLayout);
+  renderer.on('resize', updateLayout);
   updateLayout();
 
-  console.log('[Stage] 6/6 done, dish radius:', getDishRadius(), 'screen:', app.screen.width, '×', app.screen.height);
+  console.log(
+    '[Stage] done, screen:',
+    renderer.width,
+    '×',
+    renderer.height,
+    '| dish radius:',
+    getDishRadius(),
+  );
+
+  const app = {
+    renderer,
+    stage,
+    get screen() {
+      return { width: renderer.width, height: renderer.height };
+    },
+    canvas: renderer.canvas as HTMLCanvasElement,
+    ticker,
+  };
+
+  // Wire up auto-render on each tick
+  ticker.add(() => {
+    renderer.render(stage);
+  });
 
   return {
     app,
@@ -84,7 +119,8 @@ export async function createStage(host: HTMLElement): Promise<Stage> {
     getDishRadius,
     destroy: () => {
       ro.disconnect();
-      app.destroy(true, { children: true });
+      ticker.destroy();
+      renderer.destroy();
     },
   };
 }
