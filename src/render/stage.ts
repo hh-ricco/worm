@@ -15,26 +15,31 @@ const COLOR_WORM_STROKE = 0x1a1a1a;
 const MIN_SIZE = 400;
 
 export async function createStage(host: HTMLElement): Promise<Stage> {
+  console.log('[Stage] 1/6 new Application...');
   const app = new Application();
 
-  // PixiJS resizeTo picks up the host's current clientWidth/clientHeight when
-  // init() runs.  If CSS hasn't resolved yet, those can be 0 and the renderer
-  // ends up 0×0 — nothing draws.  Force a fallback minimum so the dish and
-  // worm are always at least a reasonable size, then let the resize observer
-  // push it larger once layout settles.
   const w = Math.max(MIN_SIZE, host.clientWidth || 0);
   const h = Math.max(MIN_SIZE, host.clientHeight || 0);
 
-  await app.init({
-    backgroundAlpha: 0,
-    antialias: true,
-    autoDensity: true,
-    resolution: window.devicePixelRatio || 1,
-    width: w,
-    height: h,
-  });
+  console.log('[Stage] 2/6 app.init() start, size:', w, '×', h, 'dpr:', window.devicePixelRatio);
+  try {
+    await app.init({
+      backgroundAlpha: 0,
+      antialias: true,
+      autoDensity: true,
+      resolution: window.devicePixelRatio || 1,
+      width: w,
+      height: h,
+      preference: 'webgl',
+    });
+  } catch (e) {
+    console.error('[Stage] app.init() FAILED:', e);
+    throw e;
+  }
+  console.log('[Stage] 3/6 init done, renderer:', app.renderer.type ?? app.renderer.name);
 
   host.appendChild(app.canvas);
+  console.log('[Stage] 4/6 canvas appended, setting up ResizeObserver...');
 
   // After init, hand control over to the resize observer so the renderer
   // tracks the host element from here on.
@@ -48,6 +53,7 @@ export async function createStage(host: HTMLElement): Promise<Stage> {
     }
   });
   ro.observe(host);
+  console.log('[Stage] 5/6 ResizeObserver active, building scene graph...');
 
   const world = new Container();
   app.stage.addChild(world);
@@ -69,6 +75,8 @@ export async function createStage(host: HTMLElement): Promise<Stage> {
 
   app.renderer.on('resize', updateLayout);
   updateLayout();
+
+  console.log('[Stage] 6/6 done, dish radius:', getDishRadius(), 'screen:', app.screen.width, '×', app.screen.height);
 
   return {
     app,
