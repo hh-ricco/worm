@@ -28,31 +28,62 @@ const MIN_SIZE = 400;
 export async function createStage(host: HTMLElement): Promise<Stage> {
   const w = Math.max(MIN_SIZE, host.clientWidth || 0);
   const h = Math.max(MIN_SIZE, host.clientHeight || 0);
+  const dpr = window.devicePixelRatio || 1;
 
-  console.log('[Stage] creating WebGLRenderer, size:', w, '×', h);
+  console.log('[Stage] creating canvas manually, size:', w, '×', h, 'dpr:', dpr);
 
-  let renderer: Renderer;
+  // Create canvas and get WebGL context BEFORE any PixiJS init.
+  // This isolates whether the hang is in PixiJS internals or WebGL itself.
+  const canvas = document.createElement('canvas');
+  canvas.style.display = 'block';
+
+  console.log('[Stage] calling getContext("webgl2")...');
+  const gl = canvas.getContext('webgl2', {
+    alpha: true,
+    premultipliedAlpha: true,
+    preserveDrawingBuffer: false,
+    powerPreference: 'default',
+  });
+
+  if (!gl) {
+    // Try WebGL 1 as fallback
+    console.warn('[Stage] WebGL2 not available, trying WebGL1...');
+    const gl1 = canvas.getContext('webgl', {
+      alpha: true,
+      premultipliedAlpha: true,
+    });
+    if (!gl1) {
+      throw new Error('WebGL not available in this browser');
+    }
+    console.log('[Stage] WebGL1 context obtained:', gl1);
+  } else {
+    console.log('[Stage] WebGL2 context obtained:', gl);
+  }
+
+  console.log('[Stage] creating WebGLRenderer with pre-built canvas...');
+  const renderer = new WebGLRenderer();
+
+  console.log('[Stage] calling renderer.init()...');
   try {
-    renderer = new WebGLRenderer();
-    console.log('[Stage] WebGLRenderer created, calling init...');
     await renderer.init({
+      canvas,
+      context: gl as any,
       backgroundAlpha: 0,
       antialias: true,
       width: w,
       height: h,
-      resolution: window.devicePixelRatio || 1,
+      resolution: dpr,
       autoDensity: true,
     });
-    console.log('[Stage] renderer init done, type:', (renderer as any).type ?? 'webgl');
+    console.log('[Stage] renderer.init() DONE, type:', (renderer as any).name ?? 'webgl');
   } catch (e) {
-    console.error('[Stage] WebGLRenderer failed:', e);
+    console.error('[Stage] renderer.init() FAILED:', e);
     throw e;
   }
 
-  host.appendChild(renderer.canvas as HTMLCanvasElement);
-  console.log('[Stage] canvas appended');
+  host.appendChild(canvas);
+  console.log('[Stage] canvas appended to host');
 
-  // ResizeObserver — keep the renderer glued to the container size.
   const ro = new ResizeObserver((entries) => {
     const r = entries[0];
     if (!r) return;
@@ -90,7 +121,7 @@ export async function createStage(host: HTMLElement): Promise<Stage> {
   updateLayout();
 
   console.log(
-    '[Stage] done, screen:',
+    '[Stage] all done, screen:',
     renderer.width,
     '×',
     renderer.height,
@@ -104,11 +135,10 @@ export async function createStage(host: HTMLElement): Promise<Stage> {
     get screen() {
       return { width: renderer.width, height: renderer.height };
     },
-    canvas: renderer.canvas as HTMLCanvasElement,
+    canvas,
     ticker,
   };
 
-  // Wire up auto-render on each tick
   ticker.add(() => {
     renderer.render(stage);
   });
@@ -140,12 +170,10 @@ function drawWormBody(g: Graphics): void {
 
   g.clear();
 
-  // Body capsule (head is at +x)
   g.roundRect(-halfLen, -halfW, len, halfW * 2, halfW)
     .fill({ color: COLOR_WORM_FILL })
     .stroke({ color: COLOR_WORM_STROKE, width: stroke });
 
-  // Two cross-body dividers — 3 visible segments
   const seg1X = -halfLen + len / 3;
   const seg2X = -halfLen + (2 * len) / 3;
   g.moveTo(seg1X, -halfW + 2)
@@ -155,7 +183,6 @@ function drawWormBody(g: Graphics): void {
     .lineTo(seg2X, halfW - 2)
     .stroke({ color: COLOR_WORM_STROKE, width: stroke });
 
-  // Two short bristles at the head, fanning forward and slightly up
   g.moveTo(halfLen - 4, -halfW + 4)
     .lineTo(halfLen + 2, -halfW - 8)
     .stroke({ color: COLOR_WORM_STROKE, width: stroke });
