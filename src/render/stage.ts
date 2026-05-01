@@ -74,6 +74,7 @@ export async function createStage(host: HTMLElement): Promise<Stage> {
       height: h,
       resolution: dpr,
       autoDensity: true,
+      manageImports: false,
     });
     console.log('[Stage] renderer.init() DONE, type:', (renderer as any).name ?? 'webgl');
   } catch (e) {
