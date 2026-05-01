@@ -4,6 +4,7 @@ export interface NarrativeController {
   update(elapsedSec: number): void;
   advance(): void;
   isAtLast(): boolean;
+  onAction(cb: (action: string) => void): () => void;
 }
 
 const FADE_MS = 250;
@@ -15,6 +16,8 @@ export function createNarrative(
   let shownIndex = -1;
   let manualIndex = -1;
   let fadeTimer: number | null = null;
+  const actionListeners = new Set<(action: string) => void>();
+  const firedActions = new Set<string>();
 
   function show(text: string, fade: boolean): void {
     if (fadeTimer !== null) {
@@ -34,10 +37,20 @@ export function createNarrative(
     }, FADE_MS);
   }
 
+  function fireBeatActions(idx: number): void {
+    if (idx < 0 || idx >= beats.length) return;
+    const action = beats[idx].action;
+    if (action && !firedActions.has(action)) {
+      firedActions.add(action);
+      actionListeners.forEach((cb) => cb(action));
+    }
+  }
+
   function applyIndex(idx: number): void {
     if (idx === -1 || idx === shownIndex) return;
     show(beats[idx].text, shownIndex !== -1);
     shownIndex = idx;
+    fireBeatActions(idx);
   }
 
   return {
@@ -47,7 +60,6 @@ export function createNarrative(
         if (beats[i].t <= elapsedSec) timeIdx = i;
         else break;
       }
-      // Whichever is further ahead wins — click can fast-forward, time can catch up later
       applyIndex(Math.max(timeIdx, manualIndex));
     },
     advance() {
@@ -57,6 +69,12 @@ export function createNarrative(
     },
     isAtLast() {
       return shownIndex === beats.length - 1;
+    },
+    onAction(cb) {
+      actionListeners.add(cb);
+      return () => {
+        actionListeners.delete(cb);
+      };
     },
   };
 }

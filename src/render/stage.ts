@@ -15,6 +15,8 @@ export interface Stage {
     ticker: Ticker;
   };
   worm: Graphics;
+  food: Graphics;
+  dangerLine: Graphics;
   getDishRadius(): number;
   destroy(): void;
 }
@@ -110,6 +112,12 @@ export async function createStage(host: HTMLElement): Promise<Stage> {
   drawWormBody(worm);
   world.addChild(worm);
 
+  const food = new Graphics();
+  world.addChild(food);
+
+  const dangerLine = new Graphics();
+  world.addChild(dangerLine);
+
   const getDishRadius = (): number =>
     Math.min(renderer.width, renderer.height) / 2 - 12;
 
@@ -147,6 +155,8 @@ export async function createStage(host: HTMLElement): Promise<Stage> {
   return {
     app,
     worm,
+    food,
+    dangerLine,
     getDishRadius,
     destroy: () => {
       ro.disconnect();
@@ -154,6 +164,45 @@ export async function createStage(host: HTMLElement): Promise<Stage> {
       renderer.destroy();
     },
   };
+}
+
+export function drawFood(g: Graphics, x: number, y: number, radius: number): void {
+  g.clear();
+  // Bacteria colony: central cluster + scattered dots
+  g.circle(x, y, radius)
+    .fill({ color: 0xbbf7d0, alpha: 0.6 })
+    .stroke({ color: 0x22c55e, width: 2 });
+
+  // Inner dense core
+  g.circle(x, y, radius * 0.5)
+    .fill({ color: 0x86efac, alpha: 0.8 });
+
+  // Scattered "bacteria" dots around the colony
+  const dotCount = 8;
+  for (let i = 0; i < dotCount; i++) {
+    const angle = (i / dotCount) * Math.PI * 2 + Math.random() * 0.3;
+    const dist = radius * (0.55 + Math.random() * 0.55);
+    const dx = x + Math.cos(angle) * dist;
+    const dy = y + Math.sin(angle) * dist;
+    g.circle(dx, dy, 2 + Math.random() * 3)
+      .fill({ color: 0x4ade80 });
+  }
+}
+
+export function drawDangerLine(g: Graphics, radius: number): void {
+  g.clear();
+  // Glow: wider, semi-transparent red
+  g.moveTo(0, -radius)
+    .lineTo(0, radius)
+    .stroke({ color: 0xef4444, width: 8, alpha: 0.25 });
+  // Core: solid danger red
+  g.moveTo(0, -radius)
+    .lineTo(0, radius)
+    .stroke({ color: 0xef4444, width: 3, alpha: 0.85 });
+}
+
+export function clearDangerLine(g: Graphics): void {
+  g.clear();
 }
 
 function redrawDish(g: Graphics, radius: number): void {

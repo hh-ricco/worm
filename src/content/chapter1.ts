@@ -1,6 +1,7 @@
 export interface NarrativeBeat {
   t: number;
   text: string;
+  action?: string;
 }
 
 export const chapter1Beats: NarrativeBeat[] = [
@@ -51,5 +52,6 @@ export const chapter1Beats: NarrativeBeat[] = [
   {
     t: 86,
     text: '看够了？接下来，让我们给它一点刺激。',
+    action: 'unlock-food',
   },
 ];
